@@ -27,13 +27,14 @@ jobs:
           - macos-latest
           - windows-latest
         crystal:
-          - 1.0.0
+          # - 1.0.0
+          - 1.9.0
           - latest
-        exclude:
-          - os: windows-latest
-            crystal: 1.0.0
-          - os: macos-latest
-            crystal: 1.0.0
+        # exclude:
+        #   - os: windows-latest
+        #     crystal: 1.0.0
+        #   - os: macos-latest
+        #     crystal: 1.0.0
     runs-on: ${{ matrix.os }}
     steps:
       - name: Download source
