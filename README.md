@@ -9,7 +9,7 @@ Embed file or dir to your project.
    ```yaml
    dependencies:
      embed:
-       github: initdc/embed
+       github: initdc/embed.cr
    ```
 
 2. Run `shards install`
@@ -19,9 +19,20 @@ Embed file or dir to your project.
 ```crystal
 require "embed"
 
-Embed.embed_file("#{__DIR__}/testdata/testfile")
-Embed.embed_dir("#{__DIR__}/testdata")
-Embed.embed_glob("#{__DIR__}/testdata/.*", match: File::MatchOptions::All)
+posix = Path::Kind.native == Path::Kind::POSIX
+
+file = posix ? "#{__DIR__}/testdata/testfile" : "#{__DIR__}\\testdata\\testfile"
+dir = posix ? "#{__DIR__}/testdata" : "#{__DIR__}\\testdata"
+pattern = posix ? "#{__DIR__}/testdata/.*" : "#{__DIR__}\\testdata\\.*"
+
+Embed.embed_file(file)
+p Embed.file(file)
+
+Embed.embed_dir(dir)
+p Embed.dir(file)
+
+Embed.embed_glob(pattern)
+p Embed.glob(file)
 ```
 
 ## Development
