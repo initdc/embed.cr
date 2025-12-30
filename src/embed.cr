@@ -1,90 +1,96 @@
 module Embed
   VERSION = "0.1.0"
 
-  @@data = Hash(String, Array(String)).new
+  alias Data = NamedTuple(name: String, path: Path, info: File::Info, data: String)
+
+  macro extended
+    @@db = Hash(Symbol, Array(Data)).new
+    @@db[:FILE] = Array(Data).new
+    @@db[:CHILDREN] = Array(Data).new
+    @@db[:ENTRIES] = Array(Data).new
+    @@db[:DIR] = Array(Data).new
+    @@db[:GLOB] = Array(Data).new
+  end
 
   extend self
 
-  def embed_file(filename : String)
-    key = "FILE_" + filename
-    @@data[key] = [File.read(filename)]
+  def embed_file(input : String)
+    path = Path[input]
+    data = {name: input, path: path, info: File.info(path), data: File.read(path)}
+    @@db[:FILE] << data
   end
 
-  def file(filename : String)
-    key = "FILE_" + filename
-    @@data[key][0]
+  def file(input : String)
+    @@db[:FILE].select { |data| data[:name] == input }[0]
   end
 
-  def list_children(path : String)
-    key = "CHILDREN_" + path
-    @@data[key] = full_path(path)
+  def list_children(input : String)
+    @@db[:CHILDREN] += list_info(input)
   end
 
-  def children(path : String)
-    key = "CHILDREN_" + path
-    @@data[key]
+  def children(input : String)
+    @@db[:CHILDREN].select { |data| data[:name] == input }
   end
 
-  def list_entries(path : String)
-    key = "ENTRIES_" + path
-    @@data[key] = full_path(path, entries: true)
+  def list_entries(input : String)
+    @@db[:ENTRIES] += list_info(input, entries: true)
   end
 
-  def entries(path : String)
-    key = "ENTRIES_" + path
-    @@data[key]
+  def entries(input : String)
+    @@db[:ENTRIES].select { |data| data[:name] == input }
   end
 
-  def embed_dir(path : String)
-    key = "DIR_" + path
-    path = Path[path]
-    files = Dir.new(path).children.sort
+  def embed_dir(input : String)
+    dir_path = Path[input]
+    dir_str = dir_path.to_s
+    files = Dir.new(dir_path).children.sort
 
     if files.empty?
-      raise File::NotFoundError.new("embed_dir #{path.inspect} no files found", file: path)
+      raise File::NotFoundError.new("embed_dir #{dir_str.inspect} no files found", file: dir_str)
     end
-    @@data[key] = read_files(path, files)
+    @@db[:DIR] += read_files(input, dir_path, files)
   end
 
-  def dir(path : String)
-    key = "DIR_" + path
-    @@data[key]
+  def dir(input : String)
+    @@db[:DIR].select { |data| data[:name] == input }
   end
 
-  def embed_glob(pattern : String, match : File::MatchOptions = File::MatchOptions::All, follow_symlinks : Bool = false)
-    key = "GLOB_" + pattern
-    path = Path[pattern].parent
-    files = Dir.cd(path) do
-      win_pattern = pattern.sub(path.to_s + Path::SEPARATORS[0], "")
+  def embed_glob(input : String, match : File::MatchOptions = File::MatchOptions::All, follow_symlinks : Bool = false)
+    dir_path = Path[input]
+    dir_str = dir_path.to_s
+    parent_path = dir_path.parent
+    parent_str = parent_path.to_s
+
+    files = Dir.cd(parent_path) do
+      win_pattern = dir_str.sub(parent_str + Path::SEPARATORS[0], "")
       Dir.glob(win_pattern, match: match, follow_symlinks: follow_symlinks).sort
     end
 
     if files.empty?
-      raise File::NotFoundError.new("embed_glob #{pattern.inspect} doesn't match any file", file: pattern)
+      raise File::NotFoundError.new("embed_glob #{dir_str.inspect} doesn't match any file", file: dir_str)
     end
-    @@data[key] = read_files(path, files)
+    @@db[:GLOB] += read_files(input, parent_path, files)
   end
 
-  def glob(pattern : String)
-    key = "GLOB_" + pattern
-    @@data[key]
+  def glob(input : String)
+    @@db[:GLOB].select { |data| data[:name] == input }
   end
 
-  private def full_path(path : String, *, entries = false) : Array(String)
-    path = Path[path]
-    parent = path.parent.to_s
-    files = entries ? Dir.new(path).entries.sort : Dir.new(path).children.sort
+  private def list_info(input : String, *, entries = false) : Array(Data)
+    dir_path = Path[input]
+    files = entries ? Dir.new(dir_path).entries.sort : Dir.new(dir_path).children.sort
 
     files.map do |file|
-      parent + Path::SEPARATORS[0] + file
+      path = dir_path.join(file)
+      {name: input, path: path, info: File.info(path), data: ""}
     end
   end
 
-  private def read_files(path : Path, files : Array(String)) : Array(String)
+  private def read_files(input : String, dir_path : Path, files : Array(String)) : Array(Data)
     files.compact_map do |file|
-      filename = path.join(file)
-      if File.file?(filename)
-        File.read(filename)
+      path = dir_path.join(file)
+      if File.file?(path)
+        {name: input, path: path, info: File.info(path), data: File.read(path)}
       end
     end
   end

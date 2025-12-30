@@ -9,26 +9,26 @@ describe Embed do
 
   it "embed_file" do
     Embed.embed_file(file)
-    Embed.file(file).gsub("\r\n", "\n").should eq "Hello,\nworld!"
+    Embed.file(file)[:data].gsub("\r\n", "\n").should eq "Hello,\nworld!"
   end
 
   it "embed_dir" do
     Embed.embed_dir(dir)
-    Embed.dir(dir)[0].gsub("\r\n", "\n").should eq "Hello,\ndot!"
+    Embed.dir(dir)[0][:data].gsub("\r\n", "\n").should eq "Hello,\ndot!"
   end
 
   it "list_children" do
     Embed.list_children(dir)
-    Embed.children(dir)[0].should eq Path[__DIR__].to_native.to_s + Path::SEPARATORS[0] + ".dotfile"
+    Embed.children(dir)[0][:path].should eq Path[__DIR__].join("testdata").join(".dotfile").to_native
   end
 
   it "list_entries" do
     Embed.list_entries(dir)
-    Embed.entries(dir)[0].should eq Path[__DIR__].to_native.to_s + Path::SEPARATORS[0] + "."
+    Embed.entries(dir)[0][:path].should eq Path[__DIR__].join("testdata").join(".").to_native
   end
 
   it "embed_glob" do
     Embed.embed_glob(pattern)
-    Embed.glob(pattern)[0].gsub("\r\n", "\n").should eq "Hello,\ndot!"
+    Embed.glob(pattern)[0][:data].gsub("\r\n", "\n").should eq "Hello,\ndot!"
   end
 end
