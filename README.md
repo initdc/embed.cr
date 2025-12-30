@@ -18,6 +18,10 @@ Embed file or dir to your project.
 
 ```crystal
 require "embed"
+
+Embed.embed_file("#{__DIR__}/testdata/testfile")
+Embed.embed_dir("#{__DIR__}/testdata")
+Embed.embed_glob("#{__DIR__}/testdata/.*", match: File::MatchOptions::All)
 ```
 
 ## Development
